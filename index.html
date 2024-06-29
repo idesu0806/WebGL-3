@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ファミリーマート</title>
+    <script src="https://unpkg.com/three@0.137.4/build/three.min.js"></script>
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://unpkg.com/three@0.152.2/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.152.2/examples/jsm/"
+          }
+        }
+    </script>
+</head>
+<body>
+    <script type="module">
+        import * as THREE from "three";
+        import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+        var init = function () {
+            var width = 800, height = 600;
+
+            // レンダラーを作成
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setSize(width, height);
+            document.getElementById("container").appendChild(renderer.domElement);
+
+            // 影を有効にする
+            renderer.shadowMap.enabled = true;
+
+            // シーンを作成
+            var scene = new THREE.Scene();
+
+            // カメラを作成
+            var camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
+            camera.position.set(5, 10, 15);
+            const controls = new OrbitControls(camera, renderer.domElement);
+
+            // ライトを追加
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(10, 10, 10);
+            light.castShadow = true;  // ライトの影を有効にする
+            scene.add(light);
+
+            const ambientLight = new THREE.AmbientLight(0x404040); // ambient light
+            scene.add(ambientLight);
+
+            /* helper
+            const gridHelper = new THREE.GridHelper(3,10); // size, step
+            scene.add(gridHelper);
+            const axisHelper = new THREE.AxisHelper(2); //軸の長さ X：赤、Y：緑、z：青
+            scene.add(axisHelper);*/
+
+            // グループを作る
+            const group = new THREE.Group();
+            scene.add(group);
+
+            // 窓ガラスの壁を作成
+            var glassGeometry = new THREE.BoxGeometry(5, 1.5, 3);
+            var glassMaterial = new THREE.MeshStandardMaterial({
+                color: 0xccccff,       // 薄い青色
+                opacity: 0.5,          // 透明度を決める　半透明
+                transparent: true,     // 透明度を反映する
+                roughness: 0.1,        // 表面の粗さ　反射する
+                metalness: 0.1,        // 金属らしさを控える
+                side: THREE.DoubleSide // 両面を描画
+            });
+            var glassWall = new THREE.Mesh(glassGeometry, glassMaterial);
+            glassWall.position.set(0, 0.75, 0);  // Y位置を中心に合わせる
+            glassWall.castShadow=true;//影を落とす
+            group.add(glassWall);
+
+            // 白い柱を作成
+            var pillarGeometry = new THREE.BoxGeometry(0.3, 1.5, 0.3);
+            var pillarMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const positions = [
+                [-2.5, 0.75, -1.5], // 左下
+                [ 2.5, 0.75, -1.5], // 右下
+                [-2.5, 0.75,  1.5], // 左上
+                [ 2.5, 0.75,  1.5]  // 右上
+            ];
+            positions.forEach(pos => {　//配列をもとに、それぞれの柱に操作する
+                var pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+                pillar.position.set(...pos);
+                group.add(pillar);
+            });
+
+            // 土台を作成
+            var baseGeometry = new THREE.BoxGeometry(25, 0.01, 25);
+            var baseMaterial = new THREE.MeshPhongMaterial({ color: 0xa9a9a9 });
+            var base = new THREE.Mesh(baseGeometry, baseMaterial);
+            base.position.set(0, 0.005, 0);  // Y位置を中心に合わせる
+            base.receiveShadow=true;//影を受け付ける
+            group.add(base);
+
+            // 屋根の青、白、緑の部分を作成
+            const roofHeight = 0.25;//各部分の高さ、幅、奥行き
+            const roofWidth = 5.5;
+            const roofDepth = 3.5;
+
+            const roofColors = [0x0000ff, 0xffffff, 0x008000]; // 青、白、緑
+            const roofPositions = [-roofHeight, 0, roofHeight]; // 各色の位置を決める
+
+            roofColors.forEach((color, index) => {　//配列で各色を保持する
+                const roofGeometry = new THREE.BoxGeometry(roofWidth, roofHeight, roofDepth);
+                const roofMaterial = new THREE.MeshPhongMaterial({ color: color });
+                const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+                roof.position.set(0, 1.625 + roofPositions[index], 0);  // Yの位置を中心に合わせる
+                roof.castShadow=true;//影を落とす
+                roof.receiveShadow=true;//影を受け付ける
+                group.add(roof);
+            });
+
+            // 看板の柱を作成
+            const poleGeometry = new THREE.CylinderGeometry(0.1, 0.1, 3, 32);
+            const poleMaterial = new THREE.MeshPhongMaterial({ color: 0x808080 });
+            const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+            pole.position.set(4, 1.5, 4);  // 柱の位置を指定
+            pole.castShadow=true;//影を落とす
+            group.add(pole);
+
+            // 看板を作成
+            const signHeight = 0.3;//屋根の手順と同様
+            const signWidth = 1;
+            const signDepth = 0.1;
+
+            const signColors = [0x0000ff, 0xffffff, 0x008000]; // 青、白、緑
+            const signPositions = [-signHeight, 0, signHeight]; // 下からの位置
+
+            signColors.forEach((color, index) => {
+                const signGeometry = new THREE.BoxGeometry(signWidth, signHeight, signDepth);
+                const signMaterial = new THREE.MeshPhongMaterial({ color: color });
+                const sign = new THREE.Mesh(signGeometry, signMaterial);
+                sign.position.set(4, 3.5 + signPositions[index], 4);  // 看板の位置を指定
+                sign.castShadow=true;//影を落とす
+                group.add(sign);
+            });
+
+            // 毎フレーム時に実行されるループイベント
+            var update = function (time) {
+                requestAnimationFrame(update);
+
+                // グループの回転
+                group.rotation.y += 0.001;
+                renderer.render(scene, camera);
+            };
+            update();
+        }
+
+        window.addEventListener('DOMContentLoaded', init);//表示を初期化
+    </script>
+    <div id="container"></div>
+    <a href="index.html">index.html</a>
+</body>
+</html>
